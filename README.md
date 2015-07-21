@@ -11,7 +11,7 @@ In order to make it easier to integrate into Spree
 
 Add this gem into your application's Gemfile
 
-    gem 'spree-omise', github: 'spree/spree-omise'
+    gem 'spree-omise', github: 'omise/spree-omise'
 
 Then run
 
