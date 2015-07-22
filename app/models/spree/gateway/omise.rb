@@ -57,19 +57,15 @@ module Spree
       return nil unless payment.source.gateway_customer_profile_id.nil?
       options = {}
       options[:email] = payment.order.email if payment.order.email
-      creditcard      = update_source!(payment.source)
+      payment.source  = CC_MAPPING[payment.source.cc_type] if CC_MAPPING.include?(payment.source.cc_type)
+      creditcard      = payment.source
       if creditcard.number.blank? && creditcard.gateway_payment_profile_id.present?
         options[:token_id] = creditcard.gateway_payment_profile_id
       end
-      store_card(creditcard)
+      store_card(creditcard, options)
     end
 
     private
-
-    def update_source!(payment)
-      payment.source  = CC_MAPPING[payment.source.cc_type] if CC_MAPPING.include?(payment.source.cc_type)
-      payment
-    end
 
     def store_card(creditcard, options)
       response = provider.store(creditcard, options.merge(set_default_card: true))
@@ -90,17 +86,13 @@ module Spree
       options[:ip]          = gateway_options[:ip]
 
       payment_profile_id = creditcard.gateway_payment_profile_id
-      add_token_or_card(payment_profile_id)
+      if !payment_profile_id.nil?
+        options[:token_id] = payment_profile_id if payment_profile_id.match('^tokn')
+        options[:card_id]  = payment_profile_id if payment_profile_id.match('^card')
+      end
       options[:customer_id] = creditcard.gateway_customer_profile_id unless options[:card_id].nil?
       creditcard = nil if options[:token_id] || options[:card_id]
       [money, creditcard, options]
     end
-
-    def add_token_or_card(profile_id)
-      return if profile_id.nil?
-      options[:token_id] = profile_id if profile_id.match('^tokn')
-      options[:card_id]  = profile_id if profile_id.match('^card')
-    end
-
   end
 end
